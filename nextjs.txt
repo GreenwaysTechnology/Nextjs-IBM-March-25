@@ -915,3 +915,66 @@ export default function ProfileLayout({ children }) {
 }
 
 TasK: Just think of other components , like todos,products..
+
+
+.............................................................................................
+			     Component Types and Rendering Types
+.....................................................................................
+
+Rendering is nothing but page preparation (html creation).
+
+How to create html and where to create Html?
+
+Where:
+ rendering can take place in the server or on the client.
+
+When:
+  At Server side:
+   It can happen either ahead of time at build time.
+   or on every Request at runtime.
+
+With next js , two types of rendering methods are available.
+
+1.Server-side rendering
+   1.0. Request time
+   1.1. Static site Generation - build time
+   1.2. ISR - Incremental Static rendering - first Build time and later runtime.
+
+2.Client-side Rendering
+   Preparing portion of page at client side , which is similar to SPA Apps.
+
+
+Component types:
+ Based on Rendering, we can classify the component into two category.
+
+1.Server Component
+   Server components are rendered at server side
+2.Client components
+   Clients components are rendered at client side
+
+      By default all components are "Server Rendered Components"
+
+   page,layouts,templates,notfound,loading,default all are server components only
+
+Even When create custom components
+
+export default function Greet(props) {
+     return <>
+        <h1>{props.message}</h1>
+     </>
+}
+.....................................................................................
+			 	Client Component
+....................................................................................
+
+
+
+
+
+
+
+
+
+
+
+
