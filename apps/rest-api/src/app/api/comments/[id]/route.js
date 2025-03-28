@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
-const url = `https://jsonplaceholder.typicode.com/comments`
-
+// const url = `https://jsonplaceholder.typicode.com/comments`
+const url = process.env.JSONPLACEHOLDER_COMMENTSAPI
 //findBy id
 export async function GET(request, { params }) {
     const id = (await params).id
@@ -56,7 +56,7 @@ export async function DELETE(request, { params }) {
         const response = await fetch(`${url}/${parseInt(id)}`, {
             method: 'DELETE'
         })
-        const comment  = await response.json()
+        const comment = await response.json()
         console.log(comment)
         if (!response.ok) {
             return new NextResponse(JSON.stringify({ message: `Comment for ${id} Not found` }), {

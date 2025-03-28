@@ -2670,7 +2670,58 @@ export async function DELETE(request, { params }) {
     }
 }
 ..............................................................................................
+			 Environement variables
 
+In Next.js 18, environment variables are managed using .env files, . Here’s how you can configure and use them effectively:
+
+1. Creating Environment Variables
+
+ Next.js supports three types of .env files:
+
+.env.local  or .env – Used for local development (not committed to Git)
+
+.env.development or .env – Used in development mode (next dev)
+
+.env.production or .env – Used in production mode (next build && next start)
+
+Example .env.local file:
+
+NEXT_PUBLIC_API_URL=https://api.example.com
+DATABASE_URL=postgres://user:password@localhost:5432/mydb
+SECRET_KEY=supersecretkey
+
+2. Accessing Environment Variables
+
+Public variables (accessible in both frontend & backend): Must be prefixed with NEXT_PUBLIC_
+
+Private variables (only accessible in server-side code): No prefix required
+
+Public Variable Example (Client + Server)
+
+console.log(process.env.NEXT_PUBLIC_API_URL); // Available in the browser
+Private Variable Example (Server Only)
+
+export default function handler(req, res) {
+  console.log(process.env.SECRET_KEY); // Not exposed to the browser
+  res.status(200).json({ message: "Hello World" });
+}
+3. Loading Environment Variables
+Next.js automatically loads environment variables from .env files. However, if you modify them, you need to restart the server (next dev).
+
+4. Using with next.config.js
+For variables needed at build time, use next.config.js:
+
+module.exports = {
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
+  },
+};
+Now, you can access process.env.CUSTOM_KEY in your code.
+
+5. Security Considerations
+Never expose secrets in .env without NEXT_PUBLIC_ (it will be bundled in the client)
+
+Use .gitignore to prevent committing .env.local
 
 
 
