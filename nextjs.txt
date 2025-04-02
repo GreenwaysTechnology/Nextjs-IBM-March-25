@@ -3100,27 +3100,8 @@ export default async function UsersPage() {
 }
 ............................................................................................
 			Data base integration with User interface
-...........................................................................................
-
-export default async function UsersPage() {
-    const users = await getUsers()
-    return <main>
-        <ul>
-            {
-                users.map(user => {
-                    return <li>
-                        <span>{user.id} -  {user.name}</span>
-                    </li>
-                })
-            }
-        </ul>
-    </main>
-
-}
 
 CURD:
-
-
 src/app/users/components/users.jsx
 
 'use client'
@@ -3353,7 +3334,6 @@ button:first-of-type {
 button:first-of-type:hover {
   background-color: #388e3c;
 }
-....................................................................................................
 ............................................................................................
 				 Server actions
 .............................................................................................
@@ -3486,7 +3466,117 @@ export default function FormPage(){
     </div>
 }
 ...............................................................................................
+............................................................................................
+				Server Side Redirection
+............................................................................................
+
+   To redirect after a form submission in Next.js 15 with Server Actions, you can use the redirect function from the Next.js router or perform a client-side redirect after the form submission is complete.
+
+Here’s how you can handle both server-side and client-side redirects.
+
+1. Redirect After Form Submission (Server-Side)
+If you want to redirect the user immediately after the form submission directly on the server, you can use the redirect() method in Server Actions.
+
+In Next.js 15, the redirect() function can be used directly inside the server action to navigate the user after the form is processed.
+
+Note : convert existing form into server component,No Listener
+
+<form  action="serveraction"></form>
+
+src/app/forms/userForm.jsx
+export default function CreateUserForm() {
+    return (
+        <form action={createUser} method="POST">
+            <div>
+                <label htmlFor="name">Name: </label>
+                <input type="text" id="name" name="name" required />
+            </div>
+
+            <div>
+                <label htmlFor="email">Email: </label>
+                <input type="email" id="email" name="email" required />
+            </div>
+
+            <button type="submit">Submit</button>
+        </form>
+    );
+}
+
+src/app/actions/useraction.js
+//server actions are not components but it is pieace of code which is executed in server
+'use server'
+
+import { redirect } from "next/navigation"
+
+// export async function createUser(data) {
+//     console.log('server actions', data)
+//     console.log(data.get('name'))
+//     console.log(data.get('email'))
+
+//     return {
+//         success: true, message: 'Data saved successfully'
+//     }
+// }
 
 
+//redirection
+export async function createUser(data) {
+    console.log('server actions', data)
+    console.log(data.get('name'))
+    console.log(data.get('email'))
 
+    //redirect
+    redirect('/success')
+}
+
+Note :
+ Form data is submitted to server actions via "FormData" Object of js
+............................................................................................
+	     Transfering data from Server action to Success Page
+............................................................................................
+............................................................................................
+	     Transfering data from Server action to Success Page
+............................................................................................
+
+There are many ways
+
+1.Via Url -  Query Strings
+2.Via Session Object (cookies)
+
+  redirect(`/success?name=${encodeURIComponent(data.get("name"))}&email=${encodeURIComponent(data.get("email"))}`);
+
+
+src/app/actions/userAction.js
+'use server'
+import { redirect } from "next/navigation"
+
+export async function createUser(formData) {
+    console.log('Server actions', formData)
+    //db operation here it can go ;  you can use prisma over here
+
+    //    return { success: true, message: 'Data Saved successfully' }
+   // redirect('/success')
+   
+  redirect(`/success?name=${encodeURIComponent(formData.get("name"))}&email=${encodeURIComponent(formData.get("email"))}`);
+}
+
+src/app/success/page.js
+'use client'
+	
+import { useSearchParams } from 'next/navigation';
+
+export default function SuccessPage() {
+    const searchParams = useSearchParams()
+    const name = searchParams.get('name');
+    const email = searchParams.get('email');
+
+    return <div>
+        <h1>User Form Submitted Successfully!!</h1>
+        <h1>Name : {name}</h1>
+        <h2>Email : {email}</h2>
+    </div>
+}
+
+Task:
+ Write server actions for database operations , what ever we have discussed with apis ,now convert into server actions.
 
