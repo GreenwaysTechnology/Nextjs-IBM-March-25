@@ -4331,6 +4331,237 @@ src/app/shop/[..slug]/page.js - [..] Catch all Segment routing
 src/app/shop/[[..slug]]/page.js - [[..]] Optional  Catch all Segment routing
 src/app/@auth/signin/page.js - (@auth) - Parral Route /Conditional Routing
 src/app/(ecommerce)/products/page.js -() - Route Group
-src/app/@modal/(.)photos/[id]/page.js - (.) - Route Interceptor
+src/app/@modal/(.)photos/[id]/page.js - (.) or(..)(..) or(...) - Route Interceptor
+
+............................................................................................
+			SSG -Static Site Generation
+...........................................................................................
+
+if pages uses Static Generation, the page html is generated at  "Build time"
+
+When you run "next build" , during that time, pages are generated.
+
+Generated HTML pages will then be reused on each request. It can be cached by CDN.
+
+In Next.js , you can statically generate pages "with data or without data"
+
+npx create-next-app@latest
+√ What is your project named? ... ssg-app
+√ Would you like to use TypeScript? ... No / Yes
+√ Would you like to use ESLint? ... No / Yes
+√ Would you like to use Tailwind CSS? ... No / Yes
+√ Would you like your code inside a `src/` directory? ... No / Yes
+√ Would you like to use App Router? (recommended) ... No / Yes
+√ Would you like to use Turbopack for `next dev`? ... No / Yes
+√ Would you like to customize the import alias (`@/*` by default)? ... No / Yes
+√ What import alias would you like configured? ... @/*
+
+Note that this page does not require to fetch any external data to be pre-rendered.
+In this case, next generate a single html file as per page during build time.
 
 
+> ssg-app@0.1.0 build
+> next build
+
+   ▲ Next.js 15.0.3
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+ ✓ Linting and checking validity of types
+ ✓ Collecting page data
+ ✓ Generating static pages (5/5)
+ ✓ Collecting build traces
+ ✓ Finalizing page optimization
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    5.46 kB         105 kB
+└ ○ /_not-found                          896 B           101 kB
++ First Load JS shared by all            99.9 kB
+  ├ chunks/4bd1b696-80bcaf75e1b4285e.js  52.5 kB
+  ├ chunks/517-d083b552e04dead1.js       45.5 kB
+  └ other shared chunks (total)          1.88 kB
+
+
+○  (Static)  prerendered as static content
+
+....
+
+I am going to build master details page without ssg apporach.
+
+src/app/todos/page.js  -Master page
+import Link from "next/link"
+
+
+export async function fetchTodos() {
+    const url = `https://jsonplaceholder.typicode.com/todos`
+    const response = await fetch(url)
+    return response.json()
+}
+export default async function TodosMasterPage() {
+    const todos = await fetchTodos()
+    return <div>
+        <h1>Total Todos {todos.length}</h1>
+        <ul>
+            {
+                todos.map(todo=>{
+                    return <li key={todo.id}>
+                        <Link href={`/todos/${todo.id}`}>{todo.title}</Link>
+                    </li>
+                })
+            }
+        </ul>
+    </div>
+}
+
+src/app/todos/[id]/page.js - Detail page
+
+
+export async function fetchTodosByid(id) {
+    const url = `https://jsonplaceholder.typicode.com/todos/${id}`
+    const response = await fetch(url)
+    return response.json()
+}
+
+export default async function TodoDetailPage(props) {
+    const todo = await fetchTodosByid(Number(props.params.id))
+    return <div>
+        <h2>id {todo.id}</h2>
+        <p>title {todo.title}</p>
+        <p>Status {todo.completed ? 'Ok' : 'Not Completed'}</p>
+    </div>
+}
+
+Now we are going to build this
+
+>npm run build
+npm run build
+
+> ssg-app@0.1.0 build
+> next build
+
+   ▲ Next.js 15.2.4
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+ ✓ Linting and checking validity of types
+ ✓ Collecting page data
+ ✓ Generating static pages (7/7)
+ ✓ Collecting build traces
+ ✓ Finalizing page optimization
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    5.57 kB         106 kB
+├ ○ /_not-found                            977 B         101 kB
+├ ○ /about                                 139 B         101 kB
+├ ○ /todos                                3.1 kB         104 kB
+└ ƒ /todos/[id]                            139 B         101 kB
++ First Load JS shared by all             101 kB
+  ├ chunks/4bd1b696-5b6c0ccbd3c0c9ab.js  53.2 kB
+  ├ chunks/684-c131fa2291503b5d.js       45.3 kB
+  └ other shared chunks (total)          1.95 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+Now you can notedown the above generated/build app has no ssg pages.
+
+npm start
+
+Now if you access detail page, that page is not prerendered page rather the is page is generated during request time.
+
+How to build ssg pages? ahead of request time?
+
+Soultion:
+
+ In the details page, we need to over ride the function 
+
+ export async function generateStaticParams(){
+   
+   here you have to invoke api and provide information to generate html page
+
+ }
+
+
+src/app/todos/[id]/page.js
+
+export async function fetchTodosByid(id) {
+    const url = `https://jsonplaceholder.typicode.com/todos/${id}`
+    const response = await fetch(url)
+    return response.json()
+}
+
+export default async function TodoDetailPage(props) {
+    const todo = await fetchTodosByid(Number(props.params.id))
+    return <div>
+        <h2>id {todo.id}</h2>
+        <p>title {todo.title}</p>
+        <p>Status {todo.completed ? 'Ok' : 'Not Completed'}</p>
+    </div>
+}
+export async function fetchTodos() {
+    const url = `https://jsonplaceholder.typicode.com/todos`
+    const response = await fetch(url)
+    return response.json()
+}
+//this function only will be called during build time , that means when you run npm run build
+export async function generateStaticParams() {
+    //the code will help to generate html pages 
+    const todos = await fetchTodos()
+    //return array
+    return todos.map(todo => {
+        //return object having field, fieldName is name of the html file
+        let id = todo.id.toString()
+        return {
+            id: id
+        }
+    })
+
+}
+
+>npm run build
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+ ✓ Linting and checking validity of types
+ ✓ Collecting page data
+ ✓ Generating static pages (207/207)
+ ✓ Collecting build traces
+ ✓ Finalizing page optimization
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    5.57 kB         106 kB
+├ ○ /_not-found                            977 B         101 kB
+├ ○ /about                                 139 B         101 kB
+├ ○ /todos                                3.1 kB         104 kB
+└ ● /todos/[id]                            139 B         101 kB
+    ├ /todos/1
+    ├ /todos/2
+    ├ /todos/3
+    └ [+197 more paths]
++ First Load JS shared by all             101 kB
+  ├ chunks/4bd1b696-5b6c0ccbd3c0c9ab.js  53.2 kB
+  ├ chunks/684-c131fa2291503b5d.js       45.3 kB
+  └ other shared chunks (total)          1.95 kB
+
+
+○  (Static)  prerendered as static content
+●  (SSG)     prerendered as static HTML (uses generateStaticParams)
+
+You can look at project workspace, there is ".next" folder would have been created.
+
+This folder having all production files
+
+.next/server/app/todos
+
+ 1.html
+ 2.html
+ 3.html
+ 200.html
+
+
+How to run?
+
+npm start 
+
+Now you can access the pages which are already built.
