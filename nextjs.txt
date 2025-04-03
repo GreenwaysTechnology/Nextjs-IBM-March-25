@@ -4322,3 +4322,15 @@ export default function RootLayout(props) {
 
 Note:
  since we are using parrale route, we need to render modal dialog as part of the same layout.
+
+Routing Patterns:
+
+src/app/about/page.js - static route
+src/app/products/[id]/page.js -dynamic
+src/app/shop/[..slug]/page.js - [..] Catch all Segment routing
+src/app/shop/[[..slug]]/page.js - [[..]] Optional  Catch all Segment routing
+src/app/@auth/signin/page.js - (@auth) - Parral Route /Conditional Routing
+src/app/(ecommerce)/products/page.js -() - Route Group
+src/app/@modal/(.)photos/[id]/page.js - (.) - Route Interceptor
+
+
