@@ -4906,10 +4906,7 @@ export default async function TodoDetailPage({ params }) {
         <p>Status {todo.completed ? 'Ok' : 'Not Completed'}</p>
     </div>
 }
-....................................................................................
-			Caching,Revalidation,ISR
-...................................................................................
-.............................................................................................
+............................................................................................
 
 ....................................................................................
 			Caching,Revalidation,ISR
@@ -4933,13 +4930,6 @@ add(1,1)
 
 here function takes same input, returns same output,but it is called evertime...
 This approach degrades app performance, instead the returned value can be saved in memory or some other place, with same arg , if method called, we dont need to invoke again and again, rather returns result from the memory or some place which is called cache.
-
-
-Request Memoization:
-
-if "fetch" function is called in a single tree  with same url for same data no of times
-that means if you call in the layout, again if call in nested layout, again in page , inside page  with in generateMetadata, generateStaticParams... fetch call is cached in the layout itself..
-
 
 
 Request Memoization:
@@ -5055,14 +5045,238 @@ How to test?
 
 Try to refresh the page very often, you can see that data is not changing, meaning that data is once cached, which returns from the cache only.
 
+How to clear the cache? Revalidation:
+
+Time Based Revalidation:
+
+//clear the cache based on time.
+export async function fetchCurrentDateAndTime() {
+    //api url to test whether the caching is enabled or not
+    const url = 'https://www.timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata'
+    const response = await fetch(url, { cache: 'force-cache', next: { revalidate: 2 } })
+    const data = await response.json()
+    return data
+
+}
+
+export default async function TimeCache(props) {
+    const data = await fetchCurrentDateAndTime()
+    return <div>
+        <h1>Caching App</h1>
+        <h1>Time Now: {new Date(data.dateTime).toLocaleTimeString()}</h1>
+    </div>
+}
 
 
+Testing:
+ Just refresh the page every 2 seconds , you can note down how caching and how the cache is cleared
+..............................................................................................
+.............................................................................................
+				OnDemand Revalidation
+.............................................................................................
+
+OnDemand revalidation is done via api call, when you call api, validation triggers
+
+Steps:
+1.You have to write rest api, which revalidates cache.
+ 1..1. You can use path 
+ 1..2. You can use tag
+ 1..3  You can use both
+
+Path Based:
+ Based on url we can clear cache
+
+/api/products - clear the cache related to products route
+
+src/app/api/revalidate/route.js
 
 
+import { revalidatePath } from "next/cache"
+import { NextResponse } from "next/server"
+
+export async function GET(request, { params }) {
+    //get the path
+    const path = request.nextUrl.searchParams.get('path') || '/timecache/Kolkata'
+    //clear the cache for the url
+    revalidatePath(path)
+    console.log('revalided', path)
+    return NextResponse.json({ revalidate: true, now: new Date.now(), cache: 'no-store' })
+
+}
+
+src/app/timecache/[city]/page.js
+
+//clear the cache based on path : onDemand Revalidation
+//clear the cache based on time.
+export async function fetchCurrentDateAndTime() {
+    //api url to test whether the caching is enabled or not
+    const url = 'https://www.timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata'
+    const response = await fetch(url, { cache: 'force-cache' })
+    const data = await response.json()
+    return data
+
+}
+
+export default async function TimeCache(props) {
+    const data = await fetchCurrentDateAndTime()
+    return <div>
+        <h1>Caching App</h1>
+        <h1>Time Now: {new Date(data.dateTime).toLocaleTimeString()}</h1>
+    </div>
+}
+Testing:
+ 
+GET http://localhost:3000/api/revalidate
+
+after running this 
+
+You can check whether cache is cleared or not.
+
+http://localhost:3000/timecache/Kolkata
+
+Tag Based Revalidation:
+
+Steps:
+1.we have to add tag in fetch call.
+
+//clear the cache based on tag  : onDemand Revalidation
+export async function fetchCurrentDateAndTime() {
+    //api url to test whether the caching is enabled or not
+    const url = 'https://www.timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata'
+    const response = await fetch(url, { cache: 'force-cache', next: { tags:['timerTag'] } })
+    const data = await response.json()
+    return data
+
+}
+export default async function TimeCache(props) {
+    const data = await fetchCurrentDateAndTime()
+    return <div>
+        <h1>Caching App</h1>
+        <h1>Time Now: {new Date(data.dateTime).toLocaleTimeString()}</h1>
+    </div>
+}
+2.We have to get tag in api, based on that we have to revalidate.
+
+//tag based
+export async function GET(request) {
+    //get the path
+    const tag = request.nextUrl.searchParams.get('timerTag') || 'timerTag'
+    revalidateTag(tag)
+    console.log('revalided', tag)
+    return NextResponse.json({ revalidate: true, now: Date.now(), cache: 'no-store' })
+}
+ 
+GET http://localhost:3000/api/revalidate
+
+after running this 
+
+You can check whether cache is cleared or not.
+
+http://localhost:3000/timecache/Kolkata
+...............................................................................................					ISR - Incremental Static Rendering
+...............................................................................................
 
 
+SSG + Caching+ Revalidation = ISR
+
+ISR = Rebuilding the pages when ever the data is changing, rebuild those pages only during request time.
+
+SSG:
+  -Building pages during build time.
+  -Incase if page uses data that means fetching data from apis,that data only used    during build phase
+  -page is built and cache it 
+  
+Revalidation:
+  -When we want fresh data for the page
+  -during revalidation, cache is cleared so that the page also need to be    rerendered..
 
 
+"Incrementatal static rendering is nothing but create pages during build time and cache it, if any data change for the particular page, re render that page, after clearing the cache either by using time based or on demand or both"
+
+ISR = SSR + Staic Renderning + Dynamic Rendering + SSG +request time
+
+
+How to implement ISR?
+
+1.Enable Cache
+2.Select Revalidation pattern
+3.override generateStaticParams method where you have to generate page, after build time, the page is cached.
+4.revalidate the pre build page, using revalidation pattern so that the page is rebuilt.
+
+During SSG, the pages are cached by default.
+
+Once the app is gone to the production, after that if you want to rebuild page you can apply revalidation process.
+
+ISR = SSG + Revalidation.
+
+export default async function CachePage(props) {
+    //with caching and revalidation
+    const response = await fetch('http://localhost:8080/api/timezone/Asia/Kolkata',
+        {
+            cache: 'force-cache', next: {
+                tags: ['timerTag']
+            }
+        })
+    const data = await response.json()
+
+    return <div>
+        <h1>Time Now: {new Date(data.datetime).toLocaleTimeString()}</h1>
+    </div>
+}
+
+SSG:
+export async function generateStaticParams() {
+    return [{
+        city: 'Kolkata'
+    }]
+}
+Testing:
+ You can select any revalidation pattern either timer or on demand.
+
+
+nextjs\caching-isr>npm run build
+
+> caching-isr@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.10
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+ ✓ Linting and checking validity of types
+ ✓ Collecting page data
+ ✓ Generating static pages (7/7)
+ ✓ Collecting build traces
+ ✓ Finalizing page optimization
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    5.25 kB        92.3 kB
+├ ○ /_not-found                          871 B          87.9 kB
+├ ƒ /api/revalidate                      0 B                0 B
+└ ● /timecache/[city]                    137 B          87.2 kB
+    └ /timecache/Kolkata
++ First Load JS shared by all            87.1 kB
+  ├ chunks/23-8d0b25cd7d597713.js        31.6 kB
+  ├ chunks/fd9d1056-2821b0f0cabcd8bd.js  53.6 kB
+  └ other shared chunks (total)          1.86 kB
+
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+
+
+nextjs\caching-isr>npm start
+
+> caching-isr@0.1.0 start
+> next start
+
+  ▲ Next.js 14.2.10
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 418ms
+...............................................................................................
 
 
 
